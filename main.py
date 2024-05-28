@@ -20,6 +20,7 @@ config_defaults = {
         'dropouts': config.dropouts
         }
 
+
 def create_wandb():
     wandb.init(
         # set the wandb project where this run will be logged

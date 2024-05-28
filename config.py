@@ -27,12 +27,12 @@ test_split = 0.2
 
 # Training process
 batch_size = 64  # Batch size for training.
-epochs = 2  # Number of epochs to train for.
-learning_rate = 0.001 #0.0001
+epochs = 20  # Number of epochs to train for.
+learning_rate = 0.1 #0.0001
 criterion = 'NLLLoss' #'CrossEntropyLoss'
 ltsm_layers = 1
 dropouts = 0
-opt = 'Adam' #'RMSprop'
+opt = 'SGD' #'RMSprop'
 name = f'{cell_type}-latent_dim={latent_dim},{criterion},opt={opt},lr={learning_rate},dropout={dropouts}'
 
 
