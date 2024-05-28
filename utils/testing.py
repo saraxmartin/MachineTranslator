@@ -71,7 +71,7 @@ def test(input_lang, output_lang, data_loader, type='test'):
     
     # Store loss and accuracy evolution
     if type == 'test':
-        """wandb.log({'test/loss': avg_loss, 'test/accuracy': avg_acc)"""
+        wandb.log({'test/loss': avg_loss, 'test/accuracy': avg_acc})
 
     # Store translated sentences in csv
     df = pd.DataFrame(translated_sentences, columns=['Input', 'Output', 'Target'])

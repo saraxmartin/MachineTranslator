@@ -34,8 +34,8 @@ def create_wandb():
 if __name__ == "__main__":
     
     # start a new wandb run to track this script
-    #wandb.login(key="5351fe4169143382bc5c4b2b1759400fc5aeaa45")
-    #create_wandb()
+    wandb.login(key="5351fe4169143382bc5c4b2b1759400fc5aeaa45")
+    create_wandb()
 
     # Data preprocessing
     print("\n#----------------------------------------#")

@@ -267,7 +267,7 @@ def trainSeq2Seq(train_loader, val_loader, encoder, decoder,
               f'Epoch loss: {loss:.4f}, '
               f'Epoch accuracy: {acc:.4f}')
 
-        #wandb.log({'epoch': epoch, 'train/loss': loss, 'train/accuracy': acc})
+        wandb.log({'epoch': epoch, 'train/loss': loss, 'train/accuracy': acc})
 
         # Validation
         encoder.eval()
@@ -283,7 +283,7 @@ def trainSeq2Seq(train_loader, val_loader, encoder, decoder,
             acc_val.append(val_acc)
 
 
-            #wandb.log({'epoch': epoch, 'validation/loss': val_loss, 'validation/accuracy': val_acc})
+            wandb.log({'epoch': epoch, 'validation/loss': val_loss, 'validation/accuracy': val_acc})
         
         encoder.train()
         decoder.train()
