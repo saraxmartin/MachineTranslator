@@ -23,7 +23,7 @@ config_defaults = {
 def create_wandb():
     wandb.init(
         # set the wandb project where this run will be logged
-        project="Machine_Translation",
+        project="Machine_Translation_character_level",
         # track hyperparameters and run metadata
         config=config_defaults,
         name = config.name,
