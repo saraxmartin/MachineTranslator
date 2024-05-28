@@ -27,124 +27,55 @@ def timeSince(since, percent):
     return '%s (- %s)' % (asMinutes(s), asMinutes(rs))
 
 # EVALUATIONS
-def compute_accuracy(predictions, targets, output_lang, eos_token="EOS"):
-    def tensor_to_words(tensor, lang, eos_token):
-        words = []
+def compute_accuracy(predictions, targets, output_lang, eos_token):
+    def tensor_to_chars(tensor, lang, eos_token):
+        chars = []
         for idx in tensor:
-            word = lang.index2word[idx.item()]
-            if word == eos_token:
+            char = lang.index2char[idx.item()]
+            if idx == eos_token:
                 break
-            words.append(word)
-        return words
+            chars.append(char)
+        return chars
 
     batch_size = predictions.size(0)
     total_correct = 0
-    total_words = 0
+    total_chars = 0
     
     for i in range(batch_size):
-        predicted_ids = predictions[i].max(dim=-1)[1]  # Get the predicted word indices
-        reference_words = tensor_to_words(targets[i], output_lang, eos_token)
-        predicted_words = tensor_to_words(predicted_ids, output_lang, eos_token)
+        predicted_ids = predictions[i].max(dim=-1)[1]  # Get the predicted char indices
+        reference_chars = tensor_to_chars(targets[i], output_lang, eos_token)
+        predicted_chars = tensor_to_chars(predicted_ids, output_lang, eos_token)
         
-        for pred_word, ref_word in zip(predicted_words, reference_words):
-            if pred_word == eos_token or ref_word == eos_token:
+        for pred_char, ref_char in zip(predicted_chars, reference_chars):
+            if pred_char == "EOS" or ref_char == "EOS":
                 break
-            if pred_word == ref_word:
+            if pred_char == ref_char:
                 total_correct += 1
-            total_words += 1
+            total_chars += 1
 
-    accuracy = total_correct / total_words if total_words > 0 else 0
+    accuracy = total_correct / total_chars if total_chars > 0 else 0
     return accuracy
-
-def wer(reference, hypothesis, eos_token="EOS"):
-    total_error = 0
-    total_words = 0
-    if reference != eos_token and hypothesis != eos_token:  
-        error = jiwer.wer(reference, hypothesis)
-        total_words += len(reference.split())
-        total_error += error
-    wer_value = total_error / total_words if total_words > 0 else 0
-    return wer_value
-def per(reference, hypothesis, eos_token="EOS"):
-    total_error = 0
-    total_words = 0  
-    for ref, hyp in zip(reference, hypothesis):
-        ref_chars = ''.join(' '.join(ref).split(eos_token)[0])
-        hyp_chars = ''.join(' '.join(hyp).split(eos_token)[0])
-        error = jiwer.wer(ref_chars, hyp_chars)
-        total_words += len(ref)
-        total_error += error
-    per_value = total_error / total_words if total_words > 0 else 0
-    return per_value
-
-def evaluate_per(predictions, targets, output_lang):
-    def tensor_to_words(tensor, lang):
-        words = []
-        for idx in tensor:
-            words.append(lang.index2word[idx.item()])
-        return words
-
-    total_per = 0
-    batch_size = predictions.size(0)
-    
-    for i in range(batch_size):
-        predicted_ids = predictions[i].max(dim=-1)[1]  
-        reference_sentence = tensor_to_words(targets[i], output_lang)
-        hypothesis_sentence = tensor_to_words(predicted_ids, output_lang)
-        
-        per_value = per(reference_sentence, hypothesis_sentence)
-        total_per += per_value
-    
-    average_per = total_per / batch_size
-    return average_per
-
-def evaluate_wer(predictions, targets, output_lang, eos_token="EOS"):
-    def tensor_to_words(tensor, lang, eos_token):
-        words = []
-        for idx in tensor:
-            word = lang.index2word[idx.item()]
-            if word == eos_token:
-                break
-            words.append(word)
-        return words
-
-    total_wer = 0
-    batch_size = predictions.size(0)
-    
-    for i in range(batch_size):
-        predicted_ids = predictions[i].max(dim=-1)[1] 
-        reference_sentence = tensor_to_words(targets[i], output_lang, eos_token)
-        hypothesis_sentence = tensor_to_words(predicted_ids, output_lang, eos_token)
-        reference_sentence_str = ' '.join(reference_sentence)
-        hypothesis_sentence_str = ' '.join(hypothesis_sentence)
-        wer_value = wer(reference_sentence_str, hypothesis_sentence_str)
-        total_wer += wer_value
-    average_wer = total_wer / batch_size
-    return average_wer
 
 
 def translate(input_lang, output_lang, 
               input_tensor, decoded_outputs, target_tensor):
 
-    def get_words(lang, tensor):
-
+    def get_chars(lang, tensor):
         _, topi = tensor.topk(1)
         ids = topi.squeeze()
-
-        words = []
+        chars = []
         for idx in ids:
             if idx.item() == EOS_token:
-                words.append('EOS')
+                chars.append('EOS')
                 break
-            words.append(lang.index2word[idx.item()])
+            chars.append(lang.index2char[idx.item()])
+        return chars
 
-        return words
+    input_chars = [input_lang.index2char[idx.item()] for idx in input_tensor]
+    decoded_chars = get_chars(output_lang, decoded_outputs)
+    target_chars = [output_lang.index2char[idx.item()] for idx in target_tensor]
 
-    input_words = [input_lang.index2word[idx.item()] for idx in input_tensor]
-    decoded_words = get_words(output_lang, decoded_outputs)
-    target_words = [output_lang.index2word[idx.item()] for idx in target_tensor]
-
-    return input_words, decoded_words, target_words
+    return input_chars, decoded_chars, target_chars
 
 
 # ENCODER / DECODER
@@ -153,8 +84,7 @@ class EncoderRNN(nn.Module):
         super(EncoderRNN, self).__init__()
         self.hidden_size = hidden_size
 
-        self.embedding = nn.Embedding(input_size, hidden_size)
-        
+        self.embedding = nn.Embedding(input_size, hidden_size)        
         if config.cell_type == "GRU":
             self.rnn = nn.GRU(hidden_size, hidden_size, batch_first=True)
         elif config.cell_type == "LSTM":
@@ -171,7 +101,6 @@ class DecoderRNN(nn.Module):
     def __init__(self, hidden_size, output_size):
         super(DecoderRNN, self).__init__()
         self.embedding = nn.Embedding(output_size, hidden_size)
-
         if config.cell_type == "GRU":
             self.rnn = nn.GRU(hidden_size, hidden_size, batch_first=True)
         elif config.cell_type == "LSTM":
@@ -186,12 +115,14 @@ class DecoderRNN(nn.Module):
         decoder_outputs = []
 
         for i in range(config.max_length):
-            decoder_output, decoder_hidden  = self.forward_step(decoder_input, decoder_hidden)
+            assert decoder_input.max() < self.embedding.num_embeddings, "Decoder input is out of range"
+            
+            decoder_output, decoder_hidden = self.forward_step(decoder_input, decoder_hidden)
             decoder_outputs.append(decoder_output)
 
             if target_tensor is not None:
                 # Teacher forcing: Feed the target as the next input
-                decoder_input = target_tensor[:, i].unsqueeze(1) # Teacher forcing
+                decoder_input = target_tensor[:, i].unsqueeze(1)  # Teacher forcing
             else:
                 # Without teacher forcing: use its own predictions as the next input
                 _, topi = decoder_output.topk(1)
@@ -199,7 +130,7 @@ class DecoderRNN(nn.Module):
 
         decoder_outputs = torch.cat(decoder_outputs, dim=1)
         decoder_outputs = F.log_softmax(decoder_outputs, dim=-1)
-        return decoder_outputs, decoder_hidden, None # We return `None` for consistency in the training loop
+        return decoder_outputs, decoder_hidden, None  # We return `None` for consistency in the training loop
 
     def forward_step(self, input, hidden):
         output = self.embedding(input)
@@ -207,17 +138,16 @@ class DecoderRNN(nn.Module):
         output, hidden = self.rnn(output, hidden)
         output = self.out(output)
         return output, hidden
-    
+
+
 
 # TRAINING AND VALIDATION EPOCHS
 
 def train_epoch(dataloader, encoder, decoder, encoder_optimizer,
-                decoder_optimizer, criterion,output_lang, n_epoch):
+                decoder_optimizer, criterion, output_lang):
 
     total_loss = 0
     total_acc = 0
-    total_wer = 0
-    total_per = 0
 
     for batch_idx, data in enumerate(dataloader):
         input_tensor, target_tensor = data
@@ -239,93 +169,75 @@ def train_epoch(dataloader, encoder, decoder, encoder_optimizer,
         decoder_optimizer.step()
 
         total_loss += loss.item()
-        acc = compute_accuracy(decoder_outputs, target_tensor, output_lang)
+        acc = compute_accuracy(decoder_outputs, target_tensor, output_lang,EOS_token)
         total_acc += acc
-        wer = evaluate_wer(decoder_outputs, target_tensor, output_lang)
-        total_wer += wer 
-        per = evaluate_per(decoder_outputs, target_tensor, output_lang)
-        total_per += per  
 
         if batch_idx % config.batch_size == 0:
             print(f'    Step [{batch_idx+1}/{len(dataloader)}], ' 
                   f'Loss: {loss.item():.4f}, '
-                  f'Accuracy: {acc:.4f}, '
-                  f'WER: {wer:.4f}, '
-                  f'PER: {per:.4f}')
+                  f'Accuracy: {acc:.4f} ')
 
-    average_loss = total_loss / len(dataloader)  # Calculate average loss over all batches
-    average_acc = total_acc / len(dataloader)   # Calculate average accuracy over all batches
-    average_wer = total_wer / len(dataloader)  # Calculate average WER over all batches
-    average_per= total_per / len(dataloader)  # Calculate average PER over all batches
-    return average_loss, average_acc, average_wer, average_per
+    if len(dataloader) > 0:
+        average_loss = total_loss / len(dataloader)  # Calculate average loss over all batches
+        average_acc = total_acc / len(dataloader)   # Calculate average accuracy over all batches
+    else:
+        average_loss = 0
+        average_acc = 0
 
+    """wandb.log({"train_loss": average_loss, 
+               "train_acc": average_acc)"""
 
-def val_epoch(dataloader, encoder, decoder, criterion,
-              input_lang, output_lang):
-    
+    return average_loss, average_acc
+
+def val_epoch(dataloader, encoder, decoder, criterion, input_lang, output_lang):
+
     total_loss = 0
     total_acc = 0
-    total_wer = 0 
-    total_per = 0
+    c = 0
 
-    for batch_idx, data in enumerate(dataloader):
-        
-        input_tensor, target_tensor = data
-        input_tensor, target_tensor = input_tensor.to(device), target_tensor.to(device)
 
-        encoder_outputs, encoder_hidden = encoder(input_tensor)
-        decoder_outputs, _, _ = decoder(encoder_outputs, encoder_hidden, target_tensor)
+    with torch.no_grad():
+        for batch_idx, data in enumerate(dataloader):
+            input_tensor, target_tensor = data
+            input_tensor, target_tensor = input_tensor.to(device), target_tensor.to(device)
 
-        loss = criterion(
-            decoder_outputs.view(-1, decoder_outputs.size(-1)),
-            target_tensor.view(-1)
-        )
+            encoder_outputs, encoder_hidden = encoder(input_tensor)
+            decoder_outputs, _, _ = decoder(encoder_outputs, encoder_hidden, target_tensor)
 
-        acc = compute_accuracy(decoder_outputs, target_tensor, output_lang)
+            loss = criterion(
+                decoder_outputs.view(-1, decoder_outputs.size(-1)),
+                target_tensor.view(-1)
+            )
 
-        total_loss += loss.item()
-        total_acc += acc
+            total_loss += loss.item()
+            acc = compute_accuracy(decoder_outputs, target_tensor, output_lang,EOS_token)
+            total_acc += acc
+            if batch_idx % config.batch_size == 0:
+                    print(f'        Step [{batch_idx+1}/{len(dataloader)}], ' 
+                        f'Loss: {loss.item():.4f}, '
+                        f'Accuracy: {acc:.4f}')
 
-        # Compute WER for the current batch
-        wer = evaluate_wer(decoder_outputs, target_tensor, output_lang)
-        total_wer += wer  # Sum the batch-wise average WER
-
-        per = evaluate_per(decoder_outputs, target_tensor, output_lang)
-        total_per += per  # Sum the batch-wise BLEU score
-
-        if batch_idx % config.batch_size == 0:
-            print(f'        Step [{batch_idx+1}/{len(dataloader)}], ' 
-                  f'Loss: {loss.item():.4f}, '
-                  f'Accuracy: {acc:.4f}, '
-                  f'WER: {wer:.4f}, '
-                  f'PER: {per:.4f}')
-
-            # Get translation examples
-            input_words, decoded_words, target_words = translate(input_lang, output_lang, 
-                                                                 input_tensor[0], 
-                                                                 decoder_outputs[0], 
-                                                                 target_tensor[0])
-            
-            print(f'            {input_lang.name}: {input_words}')
-            print(f'            {output_lang.name} translation: {decoded_words}')
-            print(f'            {output_lang.name} ground truth: {target_words}')
+                    # Get translation examples
+                    input_words, decoded_words, target_words = translate(input_lang, output_lang, 
+                                                                        input_tensor[0], 
+                                                                        decoder_outputs[0], 
+                                                                        target_tensor[0])
+                    
+                    print(f'{input_lang.name}: {input_words}')
+                    print(f'{output_lang.name} translation: {decoded_words}')
+                    print(f'{output_lang.name} ground truth: {target_words}')
 
     average_loss = total_loss / len(dataloader)
     average_acc = total_acc / len(dataloader)
-    average_wer = total_wer / len(dataloader) 
-    average_per = total_per/len(dataloader)
-    return average_loss, average_acc, average_wer, average_per
-
-
-# TRAINING LOOP
+    return average_loss, average_acc
 
 def trainSeq2Seq(train_loader, val_loader, encoder, decoder,
                  input_lang, output_lang):
     
     start = time.time()
     
-    losses_train, acc_train, wer_train, per_train = [],[],[],[]
-    losses_val, acc_val, wer_val, per_val = [],[],[],[]
+    losses_train, acc_train = [],[]
+    losses_val, acc_val= [],[]
 
     print(f"Cell type: {config.cell_type}")
     print(f"Hidden dimensions: {config.latent_dim}\n")
@@ -348,22 +260,18 @@ def trainSeq2Seq(train_loader, val_loader, encoder, decoder,
         print("\nEpoch:",epoch)
 
         #loss = train_epoch(train_loader, encoder, decoder, encoder_optimizer, decoder_optimizer, criterion)
-        loss, acc, wer, per = train_epoch(train_loader, encoder, decoder, encoder_optimizer, decoder_optimizer, criterion, output_lang, n_epoch=epoch)
+        loss, acc, = train_epoch(train_loader, encoder, decoder, encoder_optimizer, decoder_optimizer, criterion, output_lang)
 
         losses_train.append(loss)
         acc_train.append(acc)
-        wer_train.append(wer)
-        per_train.append(per)
 
 
         print(f'    Time: {timeSince(start, epoch / config.epochs)}, '
               f'Epochs completed: {epoch / config.epochs * 100}%, '
               f'Epoch loss: {loss:.4f}, '
-              f'Epoch accuracy: {acc:.4f}, '
-              f'Epoch WER: {wer:.4f}, '
-              f'Epoch PER: {per:.4f}')
+              f'Epoch accuracy: {acc:.4f}')
 
-        wandb.log({'epoch': epoch, 'train/loss': loss, 'train/accuracy': acc, 'train/WER': wer, 'train/PER': per})
+        #wandb.log({'epoch': epoch, 'train/loss': loss, 'train/accuracy': acc})
 
         # Validation
         encoder.eval()
@@ -372,16 +280,14 @@ def trainSeq2Seq(train_loader, val_loader, encoder, decoder,
         with torch.no_grad():
 
             print(f'\n   Validation: epoch {epoch}')
-            
-            #val_loss = val_epoch(val_loader, encoder, decoder, criterion, input_lang, output_lang)
-            val_loss, val_acc, val_wer, val_per = val_epoch(val_loader, encoder, decoder, criterion, input_lang, output_lang)
+
+            val_loss, val_acc = val_epoch(val_loader, encoder, decoder, criterion, input_lang, output_lang)
 
             losses_val.append(val_loss)
             acc_val.append(val_acc)
-            wer_val.append(val_wer)
-            per_val.append(val_per)
 
-            wandb.log({'epoch': epoch, 'validation/loss': val_loss, 'validation/accuracy': val_acc, 'validation/WER': val_wer, 'validation/PER': val_per})
+
+            #wandb.log({'epoch': epoch, 'validation/loss': val_loss, 'validation/accuracy': val_acc, 'validation/WER': val_wer, 'validation/PER': val_per})
         
         encoder.train()
         decoder.train()
@@ -391,14 +297,10 @@ def trainSeq2Seq(train_loader, val_loader, encoder, decoder,
     torch.save(decoder.state_dict(), config.decoder_path)
 
 
-
-# MAIN
 def train(input_lang, output_lang, train_loader, val_loader):
-    # Create encoder and decoder
-    encoder = EncoderRNN(input_lang.n_words, config.latent_dim).to(device)
-    decoder = DecoderRNN(config.latent_dim, output_lang.n_words).to(device)
+    encoder = EncoderRNN(input_size=input_lang.n_chars, hidden_size=config.latent_dim).to(device)
+    decoder = DecoderRNN(hidden_size=config.latent_dim, output_size=output_lang.n_chars).to(device)
     print("Encoder and decoder created.\n")
-
     # Train the decoder and encoder
     trainSeq2Seq(train_loader, val_loader, encoder, decoder, input_lang, output_lang)
     print("\nModel trained successfully.")

@@ -20,7 +20,6 @@ config_defaults = {
         'dropouts': config.dropouts
         }
 
-
 def create_wandb():
     wandb.init(
         # set the wandb project where this run will be logged
@@ -35,8 +34,8 @@ def create_wandb():
 if __name__ == "__main__":
     
     # start a new wandb run to track this script
-    wandb.login(key="8090840539532ccc2f8ea5c1595fde6dbb57bf56")
-    create_wandb()
+    #wandb.login(key="5351fe4169143382bc5c4b2b1759400fc5aeaa45")
+    #create_wandb()
 
     # Data preprocessing
     print("\n#----------------------------------------#")
@@ -50,6 +49,9 @@ if __name__ == "__main__":
     print("-------STARTING MODEL TRAINING------------")
     print("#----------------------------------------#\n")
     
+    print(f"Training dataloader length: {len(train_loader)}")
+    print(f"Validation dataloader length: {len(val_loader)}")
+
     train(input_lang, output_lang, train_loader, val_loader)
 
     print("\n#----------------------------------------#")

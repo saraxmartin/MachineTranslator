@@ -1,0 +1,40 @@
+{
+    "os": "Windows-11-10.0.22631-SP0",
+    "python": "3.12.3",
+    "heartbeatAt": "2024-05-28T10:17:17.857768",
+    "startedAt": "2024-05-28T10:17:16.465884",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "c:\\Users\\larar\\OneDrive\\Documentos\\Escritorio\\deep-learning-project-2024-ai_nndl_group_05-2\\main.py",
+    "codePathLocal": "main.py",
+    "codePath": "main.py",
+    "git": {
+        "remote": "https://github.com/DCC-UAB/deep-learning-project-2024-ai_nndl_group_05.git",
+        "commit": "d754c5a647a0874b941d4b97e2dadc5475806f53"
+    },
+    "email": "lararodriguezc1502@gmail.com",
+    "root": "C:/Users/larar/OneDrive/Documentos/Escritorio/deep-learning-project-2024-ai_nndl_group_05-2",
+    "host": "LRC_07",
+    "username": "larar",
+    "executable": "C:\\Users\\larar\\anaconda3\\envs\\deeplearning2024\\python.exe",
+    "cpu_count": 14,
+    "cpu_count_logical": 20,
+    "cpu_freq": {
+        "current": 2300.0,
+        "min": 0.0,
+        "max": 2300.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 2300.0,
+            "min": 0.0,
+            "max": 2300.0
+        }
+    ],
+    "disk": {},
+    "memory": {
+        "total": 15.717826843261719
+    }
+}

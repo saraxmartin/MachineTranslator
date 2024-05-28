@@ -15,7 +15,7 @@ if reverse == True:
     output_language = 'eng'
 
 
-max_length = 5
+max_length = 30
 
 # Seq2Seq architecture
 cell_type = 'LSTM' #'GRU'
