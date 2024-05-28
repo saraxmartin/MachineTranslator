@@ -184,9 +184,6 @@ def train_epoch(dataloader, encoder, decoder, encoder_optimizer,
         average_loss = 0
         average_acc = 0
 
-    """wandb.log({"train_loss": average_loss, 
-               "train_acc": average_acc)"""
-
     return average_loss, average_acc
 
 def val_epoch(dataloader, encoder, decoder, criterion, input_lang, output_lang):
@@ -259,7 +256,6 @@ def trainSeq2Seq(train_loader, val_loader, encoder, decoder,
 
         print("\nEpoch:",epoch)
 
-        #loss = train_epoch(train_loader, encoder, decoder, encoder_optimizer, decoder_optimizer, criterion)
         loss, acc, = train_epoch(train_loader, encoder, decoder, encoder_optimizer, decoder_optimizer, criterion, output_lang)
 
         losses_train.append(loss)
@@ -287,7 +283,7 @@ def trainSeq2Seq(train_loader, val_loader, encoder, decoder,
             acc_val.append(val_acc)
 
 
-            #wandb.log({'epoch': epoch, 'validation/loss': val_loss, 'validation/accuracy': val_acc, 'validation/WER': val_wer, 'validation/PER': val_per})
+            #wandb.log({'epoch': epoch, 'validation/loss': val_loss, 'validation/accuracy': val_acc})
         
         encoder.train()
         decoder.train()
