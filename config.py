@@ -15,11 +15,11 @@ if reverse == True:
     output_language = 'eng'
 
 
-max_length = 30
+max_length = 40
 
 # Seq2Seq architecture
 cell_type = 'LSTM' #'GRU'
-latent_dim = 128 #256 # Latent dimensionality of the encoding space.
+latent_dim = 256 #256 # Latent dimensionality of the encoding space.
 
 # Datasets
 validation_split = 0.2
@@ -27,12 +27,12 @@ test_split = 0.2
 
 # Training process
 batch_size = 64  # Batch size for training.
-epochs = 20  # Number of epochs to train for.
-learning_rate = 0.1 #0.0001
+epochs = 15  # Number of epochs to train for.
+learning_rate = 0.001 #0.0001
 criterion = 'NLLLoss' #'CrossEntropyLoss'
 ltsm_layers = 1
-dropouts = 0
-opt = 'SGD' #'RMSprop'
+dropouts = 0.2
+opt = 'Adagrad' #'RMSprop'
 name = f'{cell_type}-latent_dim={latent_dim},{criterion},opt={opt},lr={learning_rate},dropout={dropouts}'
 
 
