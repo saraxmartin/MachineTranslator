@@ -51,7 +51,7 @@ def test(input_lang, output_lang, data_loader, type='test'):
 
             total_loss.append(loss.item())
             total_acc.append(acc)
-            total_cer.append(cer)
+            total_cer.append(cer_value)
 
             
             for input, output, target in zip(input_tensor, decoder_outputs, target_tensor):

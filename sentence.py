@@ -8,9 +8,11 @@ import torch
 import torch.nn as nn
 from utils.training import *
 from utils.data import get_dataloader
-SOS_token=0
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+SOS_token = 0
+EOS_token = 1
 
 def tensorFromSentence(lang, sentence):
     indexes = []
@@ -51,9 +53,21 @@ def translate(input_lang, output_lang, input_tensor, decoded_outputs, target_ten
 
     return input_chars, decoded_chars, target_chars
 
-
 input_lang, output_lang, train_loader, val_loader, test_loader = get_dataloader()
 encoder, decoder = loadEncoderDecoderModel(input_lang, output_lang)
 sentence = "your sentence here"
-translated_sentence = translate(sentence, encoder, decoder, input_lang, output_lang)
-print(translated_sentence)
+
+# Convert sentence to tensor
+input_tensor = tensorFromSentence(input_lang, sentence)
+
+# Pass the input tensor through the encoder
+encoder_outputs, encoder_hidden = encoder(input_tensor)
+
+# Pass the encoder outputs to the decoder
+decoder_outputs, _, _ = decoder(encoder_outputs, encoder_hidden, target_tensor=None)
+
+# Translate the decoder outputs
+input_chars, decoded_chars, _ = translate(input_lang, output_lang, input_tensor, decoder_outputs)
+
+# Print the translated sentence
+print(''.join(decoded_chars))
