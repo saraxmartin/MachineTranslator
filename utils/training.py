@@ -55,6 +55,54 @@ def compute_accuracy(predictions, targets, output_lang, eos_token):
 
     accuracy = total_correct / total_chars if total_chars > 0 else 0
     return accuracy
+# Function to calculate Character Error Rate (CER)
+def cer(reference, hypothesis, eos_token="EOS"):
+    total_error = 0
+    total_chars = 0
+    # Check if both reference and hypothesis are not the end-of-sequence token
+    if reference != eos_token and hypothesis != eos_token:  
+        # Calculate the error using jiwer.wer
+        error = jiwer.wer(reference, hypothesis)
+        # Count the number of characters in the reference
+        total_chars += len(reference)
+        # Accumulate the error
+        total_error += error
+    # Calculate the CER value
+    cer_value = total_error / total_chars if total_chars > 0 else 0
+    return cer_value
+
+# Function to evaluate CER for a batch of predictions
+def evaluate_cer(predictions, targets, output_lang, eos_token):
+    # Function to convert tensor to characters
+    def tensor_to_chars(tensor, lang, eos_token):
+        chars = []
+        for idx in tensor:
+            char = lang.index2char[idx.item()]
+            if char == eos_token:
+                break
+            chars.append(char)
+        return chars
+
+    total_cer = 0
+    batch_size = predictions.size(0)
+    
+    # Loop over each item in the batch
+    for i in range(batch_size):
+        # Get predicted IDs
+        predicted_ids = predictions[i].max(dim=-1)[1] 
+        # Convert target and predicted sequences to characters
+        reference_chars = tensor_to_chars(targets[i], output_lang, eos_token)
+        hypothesis_chars = tensor_to_chars(predicted_ids, output_lang, eos_token)
+        # Convert characters to strings
+        reference_str = ''.join(reference_chars)
+        hypothesis_str = ''.join(hypothesis_chars)
+        # Calculate CER for the current pair
+        cer_value = cer(reference_str, hypothesis_str)
+        total_cer += cer_value
+    
+    # Calculate average CER for the batch
+    average_cer = total_cer / batch_size
+    return average_cer
 
 
 def translate(input_lang, output_lang, 
@@ -148,6 +196,7 @@ def train_epoch(dataloader, encoder, decoder, encoder_optimizer,
 
     total_loss = 0
     total_acc = 0
+    total_cer = 0
 
     for batch_idx, data in enumerate(dataloader):
         input_tensor, target_tensor = data
@@ -171,26 +220,31 @@ def train_epoch(dataloader, encoder, decoder, encoder_optimizer,
         total_loss += loss.item()
         acc = compute_accuracy(decoder_outputs, target_tensor, output_lang,EOS_token)
         total_acc += acc
+        cer_value = evaluate_cer(decoder_outputs, target_tensor, output_lang, EOS_token)
+        total_cer +=cer_value
 
         if batch_idx % config.batch_size == 0:
             print(f'    Step [{batch_idx+1}/{len(dataloader)}], ' 
                   f'Loss: {loss.item():.4f}, '
-                  f'Accuracy: {acc:.4f} ')
+                  f'Accuracy: {acc:.4f}, '
+                  f'CER:{cer_value}')
 
     if len(dataloader) > 0:
         average_loss = total_loss / len(dataloader)  # Calculate average loss over all batches
         average_acc = total_acc / len(dataloader)   # Calculate average accuracy over all batches
+        average_cer = total_cer / len(dataloader)   # Calculate average cer over all batches
     else:
         average_loss = 0
         average_acc = 0
+        average_cer= 0
 
-    return average_loss, average_acc
+    return average_loss, average_acc, average_cer
 
 def val_epoch(dataloader, encoder, decoder, criterion, input_lang, output_lang):
 
     total_loss = 0
     total_acc = 0
-    c = 0
+    total_cer = 0
 
 
     with torch.no_grad():
@@ -209,6 +263,8 @@ def val_epoch(dataloader, encoder, decoder, criterion, input_lang, output_lang):
             total_loss += loss.item()
             acc = compute_accuracy(decoder_outputs, target_tensor, output_lang,EOS_token)
             total_acc += acc
+            cer_value = evaluate_cer(decoder_outputs, target_tensor, output_lang, EOS_token)
+            total_cer +=cer_value
             if batch_idx % config.batch_size == 0:
                     print(f'        Step [{batch_idx+1}/{len(dataloader)}], ' 
                         f'Loss: {loss.item():.4f}, '
@@ -227,15 +283,17 @@ def val_epoch(dataloader, encoder, decoder, criterion, input_lang, output_lang):
 
     average_loss = total_loss / len(dataloader)
     average_acc = total_acc / len(dataloader)
-    return average_loss, average_acc
+    average_cer = total_cer / len(dataloader)
+
+    return average_loss, average_acc, average_cer
 
 def trainSeq2Seq(train_loader, val_loader, encoder, decoder,
                  input_lang, output_lang):
     
     start = time.time()
     
-    losses_train, acc_train = [],[]
-    losses_val, acc_val= [],[]
+    losses_train, acc_train, cer_train = [],[],[]
+    losses_val, acc_val, cer_val= [],[],[]
 
     print(f"Cell type: {config.cell_type}")
     print(f"Hidden dimensions: {config.latent_dim}\n")
@@ -257,18 +315,20 @@ def trainSeq2Seq(train_loader, val_loader, encoder, decoder,
 
         print("\nEpoch:",epoch)
 
-        loss, acc, = train_epoch(train_loader, encoder, decoder, encoder_optimizer, decoder_optimizer, criterion, output_lang)
+        loss, acc, cer = train_epoch(train_loader, encoder, decoder, encoder_optimizer, decoder_optimizer, criterion, output_lang)
 
         losses_train.append(loss)
         acc_train.append(acc)
+        cer_train.append(cer)
 
 
         print(f'    Time: {timeSince(start, epoch / config.epochs)}, '
               f'Epochs completed: {epoch / config.epochs * 100}%, '
               f'Epoch loss: {loss:.4f}, '
-              f'Epoch accuracy: {acc:.4f}')
+              f'Epoch accuracy: {acc:.4f},'
+              f'Epoch CER: {cer:.4f}')
 
-        wandb.log({'epoch': epoch, 'train/loss': loss, 'train/accuracy': acc})
+        wandb.log({'epoch': epoch, 'train/loss': loss, 'train/accuracy': acc, 'train/CER':cer})
 
         # Validation
         encoder.eval()
@@ -278,13 +338,14 @@ def trainSeq2Seq(train_loader, val_loader, encoder, decoder,
 
             print(f'\n   Validation: epoch {epoch}')
 
-            val_loss, val_acc = val_epoch(val_loader, encoder, decoder, criterion, input_lang, output_lang)
+            val_loss, val_acc, val_cer = val_epoch(val_loader, encoder, decoder, criterion, input_lang, output_lang)
 
             losses_val.append(val_loss)
             acc_val.append(val_acc)
+            cer_val.append(val_cer)
 
 
-            wandb.log({'epoch': epoch, 'validation/loss': val_loss, 'validation/accuracy': val_acc})
+            wandb.log({'epoch': epoch, 'validation/loss': val_loss, 'validation/accuracy': val_acc, 'validation/CER':cer})
         
         encoder.train()
         decoder.train()
