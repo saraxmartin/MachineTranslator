@@ -30,6 +30,7 @@ def test(input_lang, output_lang, data_loader, type='test'):
     translated_sentences = []
     total_loss = []
     total_acc = []
+    total_cer = []
 
 
     with torch.no_grad():
@@ -46,9 +47,11 @@ def test(input_lang, output_lang, data_loader, type='test'):
                 target_tensor.view(-1)
             )
             acc = compute_accuracy(decoder_outputs, target_tensor, output_lang, EOS_token)
+            cer_value = evaluate_cer(decoder_outputs, target_tensor, output_lang, EOS_token)
 
             total_loss.append(loss.item())
             total_acc.append(acc)
+            total_cer.append(cer)
 
             
             for input, output, target in zip(input_tensor, decoder_outputs, target_tensor):
@@ -60,18 +63,21 @@ def test(input_lang, output_lang, data_loader, type='test'):
                 if batch_idx % config.batch_size == 0:
                     print(f'    Step [{batch_idx+1}/{len(data_loader)}], ' 
                         f' Loss: {loss.item():.4f}, '
-                        f'Accuracy: {acc:.4f}')
+                        f'Accuracy: {acc:.4f},'
+                        f'CER: {cer:.4f}')
 
     avg_loss = sum(total_loss) / len(data_loader)
-    avg_acc = sum(total_acc) / len(data_loader)     
+    avg_acc = sum(total_acc) / len(data_loader)  
+    avg_cer = sum(total_cer) / len(data_loader)     
     
     # Print final metrics
     print(f'Average loss of {type} data: {avg_loss}, '
-          f'Average accuracy of {type} data: {avg_acc}')
+          f'Average accuracy of {type} data: {avg_acc},'
+          f'Average CER of {type} data: {avg_cer}')
     
     # Store loss and accuracy evolution
     if type == 'test':
-        wandb.log({'test/loss': avg_loss, 'test/accuracy': avg_acc})
+        wandb.log({'test/loss': avg_loss, 'test/accuracy': avg_acc,'test/CER': avg_cer})
 
     # Store translated sentences in csv
     df = pd.DataFrame(translated_sentences, columns=['Input', 'Output', 'Target'])
