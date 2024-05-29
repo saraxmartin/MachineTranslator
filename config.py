@@ -2,7 +2,7 @@
 #--------------CONFIGURATION----------------#
 #-------------------------------------------#
 
-reverse = True
+reverse = False
 
 if reverse == False:
     language = "eng-spa"
@@ -18,7 +18,7 @@ if reverse == True:
 max_length = 40
 
 # Seq2Seq architecture
-cell_type = 'GRU' #'GRU'
+cell_type = 'LSTM' #'GRU'
 latent_dim = 256 #256 # Latent dimensionality of the encoding space.
 
 # Datasets
@@ -29,7 +29,7 @@ test_split = 0.2
 batch_size = 64  # Batch size for training.
 epochs = 15  # Number of epochs to train for.
 learning_rate = 0.001 #0.0001
-criterion = 'NLLLoss' #'CrossEntropyLoss'
+criterion = 'NLLLoss' #'CrossEntropyLoss
 ltsm_layers = 1
 dropouts = 0.2
 opt = 'RMSprop' #'RMSprop'

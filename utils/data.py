@@ -60,11 +60,8 @@ def readLangs(lang1, lang2):
 
     if config.reverse:
         pairs = [list(reversed(p)) for p in pairs]
-        input_lang = Lang(lang2)
-        output_lang = Lang(lang1)
-    else:
-        input_lang = Lang(lang1)
-        output_lang = Lang(lang2)
+    input_lang = Lang(lang1)
+    output_lang = Lang(lang2)
 
     return input_lang, output_lang, pairs
 
