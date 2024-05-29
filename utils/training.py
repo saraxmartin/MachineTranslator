@@ -214,6 +214,7 @@ def val_epoch(dataloader, encoder, decoder, criterion, input_lang, output_lang):
                         f'Loss: {loss.item():.4f}, '
                         f'Accuracy: {acc:.4f}')
 
+
                     # Get translation examples
                     input_words, decoded_words, target_words = translate(input_lang, output_lang, 
                                                                         input_tensor[0], 

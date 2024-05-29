@@ -18,7 +18,7 @@ if reverse == True:
 max_length = 40
 
 # Seq2Seq architecture
-cell_type = 'LSTM' #'GRU'
+cell_type = 'GRU' #'GRU'
 latent_dim = 256 #256 # Latent dimensionality of the encoding space.
 
 # Datasets
