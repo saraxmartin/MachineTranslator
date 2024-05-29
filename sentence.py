@@ -33,14 +33,16 @@ def loadEncoderDecoderModel(input_lang, output_lang):
 
 def translate(input_lang, output_lang, input_tensor, decoded_outputs, target_tensor=None):
     def get_chars(lang, tensor):
+        print(tensor)
         _, topi = tensor.topk(1)
-        ids = topi.squeeze()
         chars = []
-        for idx in ids:
-            if idx.item() == EOS_token:
-                chars.append('EOS')
+        print("TOPI", topi)
+        for i in range(topi.size(0)):  # Iterate over the elements in the tensor
+            idx = topi[i]
+            char = lang.index2char[idx.item()]
+            if char == 'EOS':
                 break
-            chars.append(lang.index2char[idx.item()])
+            chars.append(char)
         return chars
 
     input_chars = [input_lang.index2char[idx.item()] for idx in input_tensor]
@@ -55,7 +57,7 @@ def translate(input_lang, output_lang, input_tensor, decoded_outputs, target_ten
 
 input_lang, output_lang, train_loader, val_loader, test_loader = get_dataloader()
 encoder, decoder = loadEncoderDecoderModel(input_lang, output_lang)
-sentence = "your sentence here"
+sentence = "me llamo lara"
 
 # Convert sentence to tensor
 input_tensor = tensorFromSentence(input_lang, sentence)
