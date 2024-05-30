@@ -33,12 +33,10 @@ def loadEncoderDecoderModel(input_lang, output_lang):
 
 def translate(input_lang, output_lang, input_tensor, decoded_outputs, target_tensor=None):
     def get_chars(lang, tensor):
-        print(tensor)
         _, topi = tensor.topk(1)
         chars = []
-        print("TOPI", topi)
-        for i in range(topi.size(0)):  # Iterate over the elements in the tensor
-            idx = topi[i]
+        for i in range(topi.size(1)):  # Iterate over the elements in the second dimension
+            idx = topi[0, i, 0]  # Get the index of the top 1 value in the i-th row
             char = lang.index2char[idx.item()]
             if char == 'EOS':
                 break
@@ -72,4 +70,5 @@ decoder_outputs, _, _ = decoder(encoder_outputs, encoder_hidden, target_tensor=N
 input_chars, decoded_chars, _ = translate(input_lang, output_lang, input_tensor, decoder_outputs)
 
 # Print the translated sentence
-print(''.join(decoded_chars))
+print(f'input:{input_chars}')
+print(f'output:{(decoded_chars)}')

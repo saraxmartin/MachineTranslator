@@ -20,13 +20,14 @@ max_length = 40
 cell_type = 'LSTM' #'GRU'
 latent_dim = 256 #256 # Latent dimensionality of the encoding space.
 
+
 # Datasets
 validation_split = 0.2
 test_split = 0.2
 
 # Training process
 batch_size = 64  # Batch size for training.
-epochs = 15  # Number of epochs to train for.
+epochs = 10  # Number of epochs to train for.
 learning_rate = 0.001 #0.0001
 criterion = 'NLLLoss' #'CrossEntropyLoss'
 ltsm_layers = 2

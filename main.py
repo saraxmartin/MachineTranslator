@@ -31,7 +31,6 @@ def create_wandb():
         allow_val_change=True
         )
 
-
 if __name__ == "__main__":
     
     # start a new wandb run to track this script

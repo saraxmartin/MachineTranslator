@@ -13,6 +13,14 @@ SOS_token = 0
 EOS_token = 1
 
 # FUNCTIONS
+def masked_loss(criterion, decoder_outputs, target_tensor):
+    # Create a mask by comparing targets to the padding token
+    mask = target_tensor.ne(EOS_token)
+    # Compute the loss
+    loss = criterion(decoder_outputs.view(-1, decoder_outputs.size(-1)), target_tensor.view(-1))
+    # Apply the mask to the loss.
+    loss = loss * mask.view(-1).float()
+    return loss.sum() / mask.sum().float()  # Normalize the loss by the number of non-padding tokens
 
 def asMinutes(s):
     m = math.floor(s / 60)
@@ -208,10 +216,7 @@ def train_epoch(dataloader, encoder, decoder, encoder_optimizer,
         encoder_outputs, encoder_hidden = encoder(input_tensor)
         decoder_outputs, _, _ = decoder(encoder_outputs, encoder_hidden, target_tensor)
 
-        loss = criterion(
-            decoder_outputs.view(-1, decoder_outputs.size(-1)),
-            target_tensor.view(-1)
-        )
+        loss = masked_loss(criterion, decoder_outputs, target_tensor)
         loss.backward()
 
         encoder_optimizer.step()
@@ -255,10 +260,7 @@ def val_epoch(dataloader, encoder, decoder, criterion, input_lang, output_lang):
             encoder_outputs, encoder_hidden = encoder(input_tensor)
             decoder_outputs, _, _ = decoder(encoder_outputs, encoder_hidden, target_tensor)
 
-            loss = criterion(
-                decoder_outputs.view(-1, decoder_outputs.size(-1)),
-                target_tensor.view(-1)
-            )
+            loss = masked_loss(criterion, decoder_outputs, target_tensor)
 
             total_loss += loss.item()
             acc = compute_accuracy(decoder_outputs, target_tensor, output_lang,EOS_token)

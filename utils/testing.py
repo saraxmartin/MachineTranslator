@@ -42,10 +42,7 @@ def test(input_lang, output_lang, data_loader, type='test'):
             encoder_outputs, encoder_hidden = encoder(input_tensor)
             decoder_outputs, _, _ = decoder(encoder_outputs, encoder_hidden, target_tensor)
 
-            loss = criterion(
-                decoder_outputs.view(-1, decoder_outputs.size(-1)),
-                target_tensor.view(-1)
-            )
+            loss = masked_loss(criterion, decoder_outputs, target_tensor)
             acc = compute_accuracy(decoder_outputs, target_tensor, output_lang, EOS_token)
             cer_value = evaluate_cer(decoder_outputs, target_tensor, output_lang, EOS_token)
 
@@ -64,7 +61,7 @@ def test(input_lang, output_lang, data_loader, type='test'):
                     print(f'    Step [{batch_idx+1}/{len(data_loader)}], ' 
                         f' Loss: {loss.item():.4f}, '
                         f'Accuracy: {acc:.4f},'
-                        f'CER: {cer:.4f}')
+                        f'CER: {cer_value:.4f}')
 
     avg_loss = sum(total_loss) / len(data_loader)
     avg_acc = sum(total_acc) / len(data_loader)  
